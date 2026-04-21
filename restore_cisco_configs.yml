@@ -1,0 +1,9 @@
+---
+- name: Restore Cisco Configs
+  hosts: cisco
+  gather_facts: no
+
+  tasks:
+    - name: Push config to device
+      cisco.ios.ios_config:
+        src: "./backups/{{ inventory_hostname }}.cfg"

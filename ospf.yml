@@ -1,0 +1,22 @@
+---
+- name: Configure OSPF
+  hosts: cisco
+  gather_facts: no
+
+  vars:
+    loopback_ip: "1.1.1.{{ inventory_hostname[-1] }}"
+
+  tasks:
+    - name: Configure Loopback1
+      cisco.ios.ios_config:
+        parents: interface Loopback1
+        lines:
+          - ip address {{ loopback_ip }} 255.255.255.255
+
+    - name: Configure OSPF
+      cisco.ios.ios_config:
+        parents: router ospf 1
+        lines:
+          - router-id {{ loopback_ip }}
+          - network 10.0.1.0 0.0.0.255 area 0
+          - network {{ loopback_ip }} 0.0.0.0 area 0

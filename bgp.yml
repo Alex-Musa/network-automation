@@ -1,0 +1,28 @@
+---
+- name: Configure BGP
+  hosts: cisco
+  gather_facts: no
+
+  vars:
+    router_id: "1.1.1.{{ inventory_hostname[-1] }}"
+    asn_map:
+      R1: 65001
+      R2: 65002
+      R3: 65003
+      R4: 65004
+
+  tasks:
+    - name: Configure BGP process
+      cisco.ios.ios_config:
+        parents: "router bgp {{ asn_map[inventory_hostname] }}"
+        lines:
+          - bgp router-id {{ router_id }}
+          - network {{ router_id }} mask 255.255.255.255
+
+    - name: Configure neighbors
+      cisco.ios.ios_config:
+        parents: "router bgp {{ asn_map[inventory_hostname] }}"
+        lines:
+          - "neighbor {{ hostvars[item].ansible_host }} remote-as {{ asn_map[item] }}"
+      loop: "{{ groups['cisco'] }}"
+      when: item != inventory_hostname

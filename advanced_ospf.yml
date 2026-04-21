@@ -1,0 +1,27 @@
+---
+- name: Advanced OSPF
+  hosts: cisco
+  gather_facts: no
+
+  vars:
+    loopback_ip: "1.1.1.{{ inventory_hostname[-1] }}"
+
+  tasks:
+    - name: Configure Loopback
+      cisco.ios.ios_config:
+        parents: interface Loopback1
+        lines:
+          - ip address {{ loopback_ip }} 255.255.255.255
+
+    - name: Configure OSPF process
+      cisco.ios.ios_config:
+        parents: router ospf 1
+        lines:
+          - router-id {{ loopback_ip }}
+          - passive-interface Loopback1
+
+    - name: Enable OSPF on LAN
+      cisco.ios.ios_config:
+        parents: interface GigabitEthernet0/0
+        lines:
+          - ip ospf 1 area 0

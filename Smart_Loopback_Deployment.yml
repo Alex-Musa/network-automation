@@ -1,0 +1,39 @@
+---
+- name: Smart Loopback Deployment
+  hosts: cisco
+  gather_facts: no
+
+  vars:
+    loop_ip: "1.1.1.{{ inventory_hostname[-1] }}"
+
+  tasks:
+
+    # PRE-CHECK
+    - name: Check if Loopback1 exists
+      cisco.ios.ios_command:
+        commands:
+          - show ip interface brief | include Loopback1
+      register: precheck
+
+    - name: Show pre-check result
+      debug:
+        var: precheck.stdout_lines
+
+    #APPLY CONFIG (only if missing)
+    - name: Configure Loopback1 if not exists
+      cisco.ios.ios_config:
+        parents: interface Loopback1
+        lines:
+          - ip address {{ loop_ip }} 255.255.255.255
+      when: precheck.stdout[0] == ""
+
+    #POST-CHECK
+    - name: Verify Loopback1 after config
+      cisco.ios.ios_command:
+        commands:
+          - show ip interface brief | include Loopback1
+      register: postcheck
+
+    - name: Show post-check result
+      debug:
+        var: postcheck.stdout_lines

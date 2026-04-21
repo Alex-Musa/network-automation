@@ -1,0 +1,67 @@
+---
+- name: Smart OSPF Deployment
+  hosts: cisco
+  gather_facts: no
+
+  vars:
+    loopback_ip: "1.1.1.{{ inventory_hostname[-1] }}"
+
+  tasks:
+
+    #PRE-CHECK 
+    - name: Check OSPF config
+      cisco.ios.ios_command:
+        commands:
+          - show running-config | section router ospf
+      register: ospf_pre
+
+    - name: Show pre-check
+      debug:
+        var: ospf_pre.stdout_lines
+
+    #CONFIGURE LOOPBACK
+    - name: Configure Loopback1
+      cisco.ios.ios_config:
+        parents: interface Loopback1
+        lines:
+          - ip address {{ loopback_ip }} 255.255.255.255
+
+    # APPLY OSPF
+    - name: Configure OSPF if missing
+      cisco.ios.ios_config:
+        parents: router ospf 1
+        lines:
+          - router-id {{ loopback_ip }}
+          - network 10.0.1.0 0.0.0.255 area 0
+          - network {{ loopback_ip }} 0.0.0.0 area 0
+      when: ospf_pre.stdout[0] == ""
+
+    #POST-CHECK (neighbors)
+    - name: Check OSPF neighbors
+      cisco.ios.ios_command:
+        commands:
+          - show ip ospf neighbor
+      register: ospf_neighbors
+
+    - name: Show neighbors
+      debug:
+        var: ospf_neighbors.stdout_lines
+
+    # POST-CHECK (routes)
+    - name: Check OSPF routes
+      cisco.ios.ios_command:
+        commands:
+          - show ip route ospf
+      register: ospf_routes
+
+    - name: Show routes
+      debug:
+        var: ospf_routes.stdout_lines
+
+    # VALIDATION
+    - name: Validate OSPF is working
+      assert:
+        that:
+          - ospf_neighbors.stdout[0] != ""
+        fail_msg: "OSPF neighbors not formed!"
+        success_msg: "OSPF is working correctly"

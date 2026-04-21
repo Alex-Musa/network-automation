@@ -1,0 +1,74 @@
+---
+- name: Smart BGP Deployment
+  hosts: cisco
+  gather_facts: no
+
+  vars:
+    router_id: "1.1.1.{{ inventory_hostname[-1] }}"
+    asn_map:
+      R1: 65001
+      R2: 65002
+      R3: 65003
+      R4: 65004
+
+  tasks:
+
+    #PRE-CHECK
+    - name: Check existing BGP config
+      cisco.ios.ios_command:
+        commands:
+          - show running-config | section router bgp
+      register: bgp_pre
+
+    - name: Show pre-check
+      debug:
+        var: bgp_pre.stdout_lines
+
+    #APPLY (only if missing)
+    - name: Configure BGP process if missing
+      cisco.ios.ios_config:
+        parents: "router bgp {{ asn_map[inventory_hostname] }}"
+        lines:
+          - bgp router-id {{ router_id }}
+          - network {{ router_id }} mask 255.255.255.255
+      when: bgp_pre.stdout[0] == ""
+
+    #CONFIGURE NEIGHBORS
+    - name: Configure neighbors
+      cisco.ios.ios_config:
+        parents: "router bgp {{ asn_map[inventory_hostname] }}"
+        lines:
+          - "neighbor {{ hostvars[item].ansible_host }} remote-as {{ asn_map[item] }}"
+          - "neighbor {{ hostvars[item].ansible_host }} update-source GigabitEthernet0/0"
+      loop: "{{ groups['cisco'] }}"
+      when: item != inventory_hostname
+
+    #POST-CHECK
+    - name: Get BGP summary
+      cisco.ios.ios_command:
+        commands:
+          - show ip bgp summary
+      register: bgp_post
+
+    - name: Show BGP summary
+      debug:
+        var: bgp_post.stdout_lines
+
+    #VALIDATION (neighbors state)
+    - name: Validate BGP neighbors state
+      assert:
+        that:
+          - "'Idle' not in bgp_post.stdout[0]"
+          - "'Active' not in bgp_post.stdout[0]"
+          - "'Connect' not in bgp_post.stdout[0]"
+        fail_msg: "BGP neighbors NOT Established!"
+        success_msg: "BGP neighbors Established"
+
+    #VALIDATION (routes learned - FIXED)
+    - name: Validate BGP prefixes received
+      assert:
+        that:
+          - bgp_post.stdout[0] is search("State/PfxRcd")
+          - bgp_post.stdout[0] is search("[1-9]")
+        fail_msg: "No BGP prefixes received!"
+        success_msg: "BGP prefixes received successfully"

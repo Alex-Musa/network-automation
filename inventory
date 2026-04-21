@@ -1,0 +1,16 @@
+[cisco]
+R1 ansible_host=10.0.1.125
+R2 ansible_host=10.0.1.126
+R3 ansible_host=10.0.1.127
+R4 ansible_host=10.0.1.128
+
+[cisco:vars]
+ansible_user=admin
+ansible_password=cisco123
+ansible_network_os=ios
+ansible_connection=network_cli
+ansible_network_cli_ssh_type=paramiko
+ansible_host_key_checking=False
+ansible_become=yes
+ansible_become_method=enable
+ansible_become_password=cisco123
