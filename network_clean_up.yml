@@ -1,7 +1,8 @@
 ---
-- name: Network Clean Up
+- name: Network Clean Up (Production)
   hosts: cisco
   gather_facts: no
+  connection: network_cli
 
   vars:
     asn_map:
@@ -12,50 +13,69 @@
 
   tasks:
 
-    #PRE-CHECK
-    - name: Check current routing config
+    # PRE-CHECK
+    - name: Collect routing config before cleanup
       cisco.ios.ios_command:
         commands:
           - show running-config | section router
       register: precheck
 
-    - name: Show current config
-      debug:
-        var: precheck.stdout_lines
+    # - name: Save precheck to file
+    #   copy:
+    #     content: "{{ precheck.stdout[0] }}"
+    #     dest: "backups/{{ inventory_hostname }}_pre.txt"
 
-    #REMOVE OSPF
-    - name: Remove OSPF
+    # REMOVE OSPF (only if exists)
+    - name: Remove OSPF if exists
       cisco.ios.ios_config:
         lines:
           - no router ospf 1
+      when: "'router ospf' in precheck.stdout[0]"
+      tags: ospf
 
-    #REMOVE BGP
-    - name: Remove BGP
+    # REMOVE BGP (only if exists)
+    - name: Remove BGP if exists
       cisco.ios.ios_config:
         lines:
-          - no router bgp {{ asn_map[inventory_hostname] }}
+          - "no router bgp {{ asn_map[inventory_hostname] }}"
+      when: "'router bgp' in precheck.stdout[0]"
+      tags: bgp
 
-    #REMOVE LOOPBACK
-    - name: Remove Loopback1
+    # LOOPBACK CHECK
+    - name: Check Loopback1 existence
+      cisco.ios.ios_command:
+        commands:
+          - show ip interface brief | include Loopback1
+      register: loopback_check
+
+    - name: Remove Loopback1 if exists
       cisco.ios.ios_config:
         lines:
           - no interface Loopback1
+      when: "'Loopback1' in loopback_check.stdout[0]"
+      tags: loopback
 
-    #POST-CHECK
-    - name: Verify cleanup
+    # POST-CHECK
+    - name: Collect routing config after cleanup
       cisco.ios.ios_command:
         commands:
           - show running-config | section router
       register: postcheck
 
-    - name: Show after cleanup
-      debug:
-        var: postcheck.stdout_lines
+    # - name: Save postcheck to file
+    #   copy:
+    #     content: "{{ postcheck.stdout[0] }}"
+    #     dest: "backups/{{ inventory_hostname }}_post.txt"
 
-    #VALIDATION
+    # VALIDATION
     - name: Validate cleanup
       assert:
         that:
-          - postcheck.stdout[0] == ""
+          - postcheck.stdout[0] | length == 0
         fail_msg: "Cleanup failed, routing config still exists!"
         success_msg: "Cleanup successful, config removed"
+
+    # SAVE CONFIG
+    - name: Save running config
+      cisco.ios.ios_config:
+        save_when: modified
