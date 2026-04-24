@@ -1,0 +1,18 @@
+# Ansible secrets
+vault_pass.txt
+
+# CSV files (per site)
+*.csv
+
+# backups
+backups/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Ansible temp files
+*.retry
+
+# OS files
+.DS_Store

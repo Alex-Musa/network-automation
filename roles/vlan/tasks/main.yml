@@ -1,4 +1,23 @@
 ---
+- name: Ensure required variables exist
+  assert:
+    that:
+      - site_base is defined
+      - vlans is defined
+    fail_msg: "Missing required variables (site_base or vlans)"
+
+# DEBUG
+- name: DEBUG site_base
+  debug:
+    var: site_base
+
+- name: DEBUG vlans
+  debug:
+    var: vlans
+
+# =========================
+# VLAN Creation
+# =========================
 - name: Get existing VLANs
   cisco.ios.ios_command:
     commands:
@@ -17,17 +36,23 @@
   loop: "{{ vlans }}"
   when: item.id|string not in existing_vlans
 
-# SVI (dynamic per site)
-- name: Configure SVI interfaces
+# =========================
+# SVI Configuration
+# =========================
+- name: Ensure correct SVI configuration
   cisco.ios.ios_config:
     parents: "interface Vlan{{ item.id }}"
     lines:
       - description {{ item.name }}
       - ip address {{ site_base }}.{{ item.net_id }}.1 255.255.255.0
       - no shutdown
+    match: line
+    replace: line
   loop: "{{ vlans }}"
 
+# =========================
 # Validation
+# =========================
 - name: Refresh VLAN output after config
   cisco.ios.ios_command:
     commands:
@@ -44,4 +69,12 @@
       - item.id|string in vlan_text
     fail_msg: "VLAN {{ item.id }} NOT configured!"
     success_msg: "VLAN {{ item.id }} OK"
+  loop: "{{ vlans }}"
+
+# =========================
+# DEBUG 
+# =========================
+- name: DEBUG calculated IPs
+  debug:
+    msg: "VLAN {{ item.id }} → {{ site_base }}.{{ item.net_id }}.1"
   loop: "{{ vlans }}"

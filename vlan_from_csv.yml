@@ -1,0 +1,105 @@
+---
+- name: Deploy VLANs + OSPF from CSV
+  hosts: all
+  gather_facts: no
+
+  collections:
+    - cisco.ios
+    - community.general
+    - ansible.utils
+
+  vars:
+    csv_file: "{{ group_names[0] }}.csv"
+
+  tasks:
+
+    # =========================
+    # CLEAN OSPF
+    # =========================
+    - name: Remove old OSPF
+      cisco.ios.ios_config:
+        lines:
+          - no router ospf 1
+      ignore_errors: yes
+
+    # =========================
+    # CSV READ
+    # =========================
+    - name: Show selected CSV file
+      debug:
+        msg: "Using file {{ csv_file }}"
+
+    - name: Read CSV
+      community.general.read_csv:
+        path: "{{ csv_file }}"
+      register: vlan_csv
+
+    # =========================
+    # CREATE VLAN L2
+    # =========================
+    - name: Create VLANs (L2)
+      cisco.ios.ios_config:
+        parents: "vlan {{ item.id }}"
+        lines:
+          - name {{ item.name }}
+      loop: "{{ vlan_csv.list }}"
+
+    # =========================
+    # CREATE SVI (L3)
+    # =========================
+    - name: Configure SVI interfaces
+      cisco.ios.ios_config:
+        parents: "interface Vlan{{ item.id }}"
+        lines:
+          - description {{ item.name }}
+          - ip address {{ item.ip }} {{ item.mask }}
+          - no shutdown
+        match: line
+        replace: line
+      loop: "{{ vlan_csv.list }}"
+
+    # =========================
+    # GET VLAN 20 IP
+    # =========================
+    - name: Extract VLAN 20 IP
+      set_fact:
+        vlan20_ip: "{{ item.ip }}"
+      loop: "{{ vlan_csv.list }}"
+      when: item.id | int == 20
+
+    # =========================
+    # BUILD ROUTER-ID
+    # =========================
+    - name: Build router-id
+      set_fact:
+        router_id: "{{ vlan20_ip | default('1.1.1.1') }}"
+
+    - name: Show router-id
+      debug:
+        msg: "Router-ID = {{ router_id }}"
+
+    # =========================
+    # ENSURE OSPF PROCESS EXISTS
+    # =========================
+    - name: Create OSPF process
+      cisco.ios.ios_config:
+        lines:
+          - router ospf 1
+
+    # =========================
+    # ADD NETWORKS
+    # =========================
+    - name: Add OSPF networks dynamically
+      cisco.ios.ios_config:
+        parents: "router ospf 1"
+        lines:
+          - "network {{ item.ip.split('.')[:3] | join('.') }}.0 0.0.0.255 area 0"
+      loop: "{{ vlan_csv.list }}"
+
+    # =========================
+    # RESTART OSPF
+    # =========================
+    - name: Restart OSPF process
+      cisco.ios.ios_command:
+        commands:
+          - clear ip ospf process

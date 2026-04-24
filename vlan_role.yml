@@ -1,6 +1,6 @@
 ---
 - name: Deploy VLAN Role
-  hosts: switch
+  hosts: all
   gather_facts: no
   strategy: free
 

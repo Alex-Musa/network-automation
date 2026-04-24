@@ -1,0 +1,77 @@
+---
+- name: Full Network Cleanup
+  hosts: all
+  gather_facts: no
+
+  vars:
+    vlans_to_remove: [11,20,30,41,42,50,60,71,72,81,82,90]
+    interfaces_to_reset:
+      - GigabitEthernet0/1
+      - GigabitEthernet0/2
+      - GigabitEthernet0/3
+      - GigabitEthernet1/0
+      - GigabitEthernet1/1
+      - GigabitEthernet1/2
+      - GigabitEthernet1/3
+
+  tasks:
+
+  # =========================
+  # Remove SVI Interfaces
+  # =========================
+  - name: Remove SVI interfaces
+    cisco.ios.ios_config:
+      lines:
+        - no interface Vlan{{ item }}
+    loop: "{{ vlans_to_remove }}"
+    ignore_errors: yes
+
+  # =========================
+  # Remove VLANs
+  # =========================
+  - name: Remove VLANs
+    cisco.ios.ios_config:
+      lines:
+        - no vlan {{ item }}
+    loop: "{{ vlans_to_remove }}"
+    ignore_errors: yes
+
+  # =========================
+  # Reset Interfaces
+  # =========================
+  - name: Reset interfaces to default
+    cisco.ios.ios_config:
+      lines:
+        - default interface {{ item }}
+    loop: "{{ interfaces_to_reset }}"
+
+  # =========================
+  # Remove static routes
+  # =========================
+  - name: Remove default route
+    cisco.ios.ios_config:
+      lines:
+        - no ip route 0.0.0.0 0.0.0.0 192.168.1.1
+    ignore_errors: yes
+
+  # =========================
+  # Disable routing (optional)
+  # =========================
+  - name: Remove IP routing (optional)
+    cisco.ios.ios_config:
+      lines:
+        - no ip routing
+    ignore_errors: yes
+
+  # =========================
+  # Validation
+  # =========================
+  - name: Verify cleanup
+    cisco.ios.ios_command:
+      commands:
+        - show vlan brief
+    register: vlan_check
+
+  - name: Show remaining VLANs
+    debug:
+      var: vlan_check.stdout_lines
