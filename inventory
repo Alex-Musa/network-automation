@@ -7,6 +7,12 @@ R4 ansible_host=10.0.1.128
 [switch]
 SW ansible_host=10.0.1.129
 
+[AMLGO]
+SW_AMLGO ansible_host=10.0.1.130
+
+[LAFSEA]
+SW_LAFSEA ansible_host=10.0.1.131
+
 [all:vars]
 ansible_network_os=ios
 ansible_connection=network_cli

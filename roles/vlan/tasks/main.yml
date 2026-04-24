@@ -1,0 +1,47 @@
+---
+- name: Get existing VLANs
+  cisco.ios.ios_command:
+    commands:
+      - show vlan brief
+  register: vlan_output
+
+- name: Extract existing VLAN IDs
+  set_fact:
+    existing_vlans: "{{ vlan_output.stdout[0] | regex_findall('^\\s*(\\d+)\\s', multiline=True) }}"
+
+- name: Create only missing VLANs
+  cisco.ios.ios_config:
+    parents: "vlan {{ item.id }}"
+    lines:
+      - name {{ item.name }}
+  loop: "{{ vlans }}"
+  when: item.id|string not in existing_vlans
+
+# SVI (dynamic per site)
+- name: Configure SVI interfaces
+  cisco.ios.ios_config:
+    parents: "interface Vlan{{ item.id }}"
+    lines:
+      - description {{ item.name }}
+      - ip address {{ site_base }}.{{ item.net_id }}.1 255.255.255.0
+      - no shutdown
+  loop: "{{ vlans }}"
+
+# Validation
+- name: Refresh VLAN output after config
+  cisco.ios.ios_command:
+    commands:
+      - show vlan brief
+  register: vlan_output_after
+
+- name: Extract VLAN text
+  set_fact:
+    vlan_text: "{{ vlan_output_after.stdout[0] }}"
+
+- name: Validate VLANs exist
+  assert:
+    that:
+      - item.id|string in vlan_text
+    fail_msg: "VLAN {{ item.id }} NOT configured!"
+    success_msg: "VLAN {{ item.id }} OK"
+  loop: "{{ vlans }}"
