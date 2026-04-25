@@ -1,18 +1,12 @@
 ---
-- name: Test show command
+- name: Test SSH only
   hosts: cisco
   gather_facts: no
 
-  collections:
-    - cisco.ios
-
   tasks:
-    - name: Show ip interface brief
-      cisco.ios.ios_command:
-        commands:
-          - show ip interface brief
+    - name: Run show command
+      raw: show ip interface brief
       register: output
 
-    - name: Print output
-      debug:
+    - debug:
         var: output.stdout_lines
