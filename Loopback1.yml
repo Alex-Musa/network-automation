@@ -1,0 +1,24 @@
+---
+- name: Configure Loopback
+  hosts: cisco
+  gather_facts: no
+
+  collections:
+    - cisco.ios
+
+  tasks:
+    - name: Create Loopback1
+      ios_config:
+        parents: interface Loopback1
+        lines:
+          - ip address 1.1.1.{{ inventory_hostname[-1] }} 255.255.255.255
+
+    - name: Show interfaces
+      ios_command:
+        commands:
+          - show ip interface brief
+      register: output
+
+    - name: Print output
+      debug:
+        var: output.stdout_lines
