@@ -1,0 +1,17 @@
+---
+- name: FortiGate Test
+  hosts: fortigate
+  gather_facts: no
+
+  collections:
+    - fortinet.fortios
+
+  tasks:
+    - name: Get system status
+      fortios_monitor_fact:
+        selector: "system_status"
+      register: output
+
+    - name: Print output
+      debug:
+        var: output
