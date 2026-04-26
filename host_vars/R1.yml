@@ -1,0 +1,10 @@
+loopback_ip: 1.1.1.1
+
+interfaces:
+  - name: GigabitEthernet0/0
+    apply_ip: false
+
+bgp:
+  asn: 65001
+  neighbors:
+    - { ip: 2.2.2.2, remote_as: 65002 }

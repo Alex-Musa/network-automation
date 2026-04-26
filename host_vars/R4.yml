@@ -1,0 +1,11 @@
+loopback_ip: 4.4.4.4
+
+interfaces:
+  - name: GigabitEthernet0/0
+    apply_ip: false
+
+bgp:
+  asn: 65004
+  neighbors:
+    - ip: 1.1.1.1
+      remote_as: 65001

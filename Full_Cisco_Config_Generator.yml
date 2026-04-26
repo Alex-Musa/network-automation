@@ -1,0 +1,25 @@
+---
+- name: Full Cisco Config Generator
+  hosts: cisco
+  gather_facts: no
+
+  collections:
+    - cisco.ios
+
+  tasks:
+  
+    # Generate config file
+    - name: Generate config
+      template:
+        src: full_router_config.j2
+        dest: "./configs/{{ inventory_hostname }}.cfg"
+
+    # Push config
+    - name: Push config
+      ios_config:
+        src: "./configs/{{ inventory_hostname }}.cfg"
+
+    # Save config
+    - name: Save running config
+      ios_config:
+        save_when: always
