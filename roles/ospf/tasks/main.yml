@@ -1,5 +1,5 @@
 ---
 
-- name: Generate OSPF config (memory)
+- name: Generate OSPF config
   set_fact:
     ospf_config: "{{ lookup('template', 'ospf.j2') }}"
