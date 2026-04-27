@@ -37,7 +37,7 @@
     <(echo "{{ running_config.stdout[0] }}")
     {{ final_config_file }}
   register: diff_output
-  ignore_errors: yes
+  ignore_errors: true
 
 # approval
 - name: Confirm apply
