@@ -1,6 +1,6 @@
 ---
 - name: Production Deployment Pipeline
-  hosts: switch, cisco
+  hosts: switch
   gather_facts: no
 
   roles:
