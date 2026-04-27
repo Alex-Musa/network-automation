@@ -1,8 +1,11 @@
 ---
-- name: Deploy VLAN Role
-  hosts: all
+- name: Production Deployment Pipeline
+  hosts: switch, cisco
   gather_facts: no
-  strategy: free
 
   roles:
     - vlan
+    - dhcp
+    - ospf
+    - bgp
+    - common

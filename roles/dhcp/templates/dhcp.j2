@@ -1,0 +1,6 @@
+{% for svi in svis %}
+ip dhcp pool VLAN{{ svi.vlan }}
+ network {{ svi.network }} {{ svi.mask }}
+ default-router {{ svi.ip }}
+
+{% endfor %}

@@ -1,0 +1,5 @@
+---
+- name: Generate BGP config (memory)
+  set_fact:
+    bgp_config: "{{ lookup('template', 'bgp.j2') }}"
+  when: bgp.enabled | default(false)

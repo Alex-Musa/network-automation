@@ -1,0 +1,12 @@
+{% if bgp.enabled %}
+router bgp {{ bgp.asn }}
+ bgp router-id {{ bgp.router_id }}
+
+{% for n in neighbors %}
+ neighbor {{ n.ip }} remote-as {{ n.remote_as }}
+{% endfor %}
+
+{% for svi in svis %}
+ network {{ svi.network }} mask {{ svi.mask }}
+{% endfor %}
+{% endif %}

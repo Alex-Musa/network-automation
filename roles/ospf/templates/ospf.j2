@@ -1,0 +1,4 @@
+router ospf {{ ospf.process_id }}
+{% for svi in svis %}
+ network {{ svi.network }} {{ svi.wildcard }} area {{ ospf.area }}
+{% endfor %}

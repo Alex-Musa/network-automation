@@ -1,0 +1,6 @@
+---
+
+- name: Generate DHCP config (memory)
+  set_fact:
+    dhcp_config: "{{ lookup('template', 'dhcp.j2') }}"
+

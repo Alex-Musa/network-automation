@@ -1,0 +1,63 @@
+---
+# build config (memory)
+- name: Build final config in memory
+  set_fact:
+    final_config_content: |
+      {{ vlan_config | default('') }}
+
+      {{ dhcp_config | default('') }}
+
+      {{ ospf_config | default('') }}
+
+      {{ bgp_config | default('') }}
+
+# save file
+- name: Save final config
+  copy:
+    content: "{{ final_config_content }}"
+    dest: "{{ playbook_dir }}/configs/{{ inventory_hostname }}_final.cfg"
+
+# define path
+- name: Set final config path
+  set_fact:
+    final_config_file: "{{ playbook_dir }}/configs/{{ inventory_hostname }}_final.cfg"
+
+# get running config
+- name: Get running config
+  cisco.ios.ios_command:
+    commands:
+      - show running-config
+  register: running_config
+
+
+# diff
+- name: Show diff
+  command: >
+    diff -u
+    <(echo "{{ running_config.stdout[0] }}")
+    {{ final_config_file }}
+  register: diff_output
+  ignore_errors: yes
+
+# approval
+- name: Confirm apply
+  pause:
+    prompt: "Apply config to {{ inventory_hostname }}? (yes/no)"
+  register: user_input
+
+# deploy
+- name: Deploy config
+  cisco.ios.ios_config:
+    src: "{{ final_config_file }}"
+    match: line
+    replace: line
+  when: user_input.user_input == "yes"
+
+# show final
+- name: Show final config
+  command: cat {{ final_config_file }}
+  register: final_output
+  changed_when: false
+
+- debug:
+    var: final_output.stdout_lines

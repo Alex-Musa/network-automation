@@ -1,4 +1,19 @@
-{% for vlan in vlans %}
-vlan {{ vlan.id }}
- name {{ vlan.name }}
+ip routing
+
+{% for svi in svis %}
+
+vlan {{ svi.vlan }}
+ name {{ svi.name }}
+
+interface Vlan{{ svi.vlan }}
+ description {{ svi.name }}
+ ip address {{ svi.ip }} {{ svi.mask }}
+ no shutdown
+
+interface {{ svi.access_port }}
+ description ACCESS_{{ svi.name }}
+ switchport mode access
+ switchport access vlan {{ svi.vlan }}
+ no shutdown
+
 {% endfor %}

@@ -1,10 +1,26 @@
-loopback_ip: 1.1.1.1
+svis:
+  - vlan: 10
+    ip: 192.168.10.1
+    mask: 255.255.255.0
+    name: USERS
 
-interfaces:
-  - name: GigabitEthernet0/0
-    apply_ip: false
+  - vlan: 20
+    ip: 192.168.20.1
+    mask: 255.255.255.0
+    name: SERVERS
+
+  - vlan: 30
+    ip: 192.168.30.1
+    mask: 255.255.255.0
+    name: VOICE
 
 bgp:
+  enabled: true
   asn: 65001
-  neighbors:
-    - { ip: 2.2.2.2, remote_as: 65002 }
+  router_id: 1.1.1.1
+
+neighbors:
+  - ip: 2.2.2.2
+    remote_as: 65002
+  - ip: 3.3.3.3
+    remote_as: 65003

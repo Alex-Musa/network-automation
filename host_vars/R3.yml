@@ -1,11 +1,15 @@
-loopback_ip: 3.3.3.3
+svis:
+  - vlan: 10
+    ip: 172.18.1.1
+    mask: 255.255.255.0
+    name: USERS
 
-interfaces:
-  - name: GigabitEthernet0/0
-    apply_ip: false
+  - vlan: 20
+    ip: 172.18.2.1
+    mask: 255.255.255.0
+    name: SERVERS
 
-bgp:
-  asn: 65003
-  neighbors:
-    - ip: 1.1.1.1
-      remote_as: 65001
+  - vlan: 30
+    ip: 172.18.3.1
+    mask: 255.255.255.0
+    name: VOICE
