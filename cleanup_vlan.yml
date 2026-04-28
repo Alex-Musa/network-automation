@@ -1,0 +1,68 @@
+---
+- name: Cleanup Network Config (Safe)
+  hosts: switch
+  gather_facts: no
+
+  tasks:
+
+    # Pre-check VLAN interfaces
+    - name: Get VLAN interfaces
+      cisco.ios.ios_command:
+        commands:
+          - show ip interface brief
+      register: int_output
+
+    # Pre-check DHCP
+    - name: Get DHCP config
+      cisco.ios.ios_command:
+        commands:
+          - show running-config | section ip dhcp
+      register: dhcp_output
+
+    # Pre-check OSPF
+    - name: Get OSPF config
+      cisco.ios.ios_command:
+        commands:
+          - show running-config | section router ospf
+      register: ospf_output
+
+    # Remove OSPF (only if exists)
+    - name: Remove OSPF
+      cisco.ios.ios_config:
+        lines:
+          - "no router ospf 1"
+      when: "'router ospf' in ospf_output.stdout[0]"
+
+    # Remove DHCP pools (only if exists)
+    - name: Remove DHCP pools
+      cisco.ios.ios_config:
+        lines:
+          - "no ip dhcp pool VLAN{{ item.vlan }}"
+      loop: "{{ svis }}"
+      when: "'VLAN' + item.vlan|string in dhcp_output.stdout[0]"
+
+    # Remove SVI safely
+    - name: Remove SVI interfaces
+      cisco.ios.ios_config:
+        lines:
+          - "no interface Vlan{{ item.vlan }}"
+      loop: "{{ svis }}"
+      when: "'Vlan' + item.vlan|string in int_output.stdout[0]"
+
+    # Remove VLAN
+    - name: Remove VLAN
+      cisco.ios.ios_config:
+        lines:
+          - "no vlan {{ item.vlan }}"
+      loop: "{{ svis }}"
+      when: "'VLAN' + item.vlan|string in int_output.stdout[0]"
+
+    # Post-check
+    - name: Verify cleanup
+      cisco.ios.ios_command:
+        commands:
+          - show ip interface brief
+      register: verify_output
+
+    - debug:
+        var: verify_output.stdout_lines
