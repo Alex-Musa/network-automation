@@ -1,0 +1,14 @@
+plugin: netbox.netbox.nb_inventory
+
+api_endpoint: http://10.0.1.14
+token: yKQPyIIAMHg3Cob4SYNlFDnhaWx4xxUdPFipZzau
+
+validate_certs: false
+
+group_by:
+  - sites
+  - device_roles
+  - platforms
+
+interfaces: true
+config_context: true
